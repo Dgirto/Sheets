@@ -115,7 +115,7 @@ def _validate_range(range_name: Any) -> str:
 
 
 def _validate_value_input_option(value_input_option: Any) -> str:
-    if value_input_option not in _VALID_VALUE_INPUT_OPTIONS:
+    if not isinstance(value_input_option, str) or value_input_option not in _VALID_VALUE_INPUT_OPTIONS:
         raise SheetsDataError(
             f"value_input_option={value_input_option!r} inválido. "
             f"Valores permitidos: {sorted(_VALID_VALUE_INPUT_OPTIONS)}."
