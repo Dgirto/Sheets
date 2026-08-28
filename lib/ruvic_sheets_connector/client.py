@@ -89,20 +89,38 @@ def _wrap_http_error(exc: HttpError) -> SheetsConnectorError:
     return SheetsDataError(f"Error de Sheets API (HTTP {status}): {exc}")
 
 
-def _validate_spreadsheet_id(spreadsheet_id: str) -> str:
+_VALID_VALUE_INPUT_OPTIONS = {"USER_ENTERED", "RAW"}
+
+
+def _validate_spreadsheet_id(spreadsheet_id: Any) -> str:
+    if not isinstance(spreadsheet_id, str):
+        raise SheetsDataError(
+            f"spreadsheet_id debe ser un string, no {type(spreadsheet_id).__name__}."
+        )
     spreadsheet_id = spreadsheet_id.strip()
     if not spreadsheet_id:
         raise SheetsDataError("spreadsheet_id no puede estar vacío.")
     return spreadsheet_id
 
 
-def _validate_range(range_name: str) -> str:
+def _validate_range(range_name: Any) -> str:
+    if not isinstance(range_name, str):
+        raise SheetsDataError(f"range debe ser un string, no {type(range_name).__name__}.")
     range_name = range_name.strip()
     if not range_name:
         raise SheetsDataError(
             "range no puede estar vacío (ej. 'Hoja1!A1:D20' o 'Hoja1')."
         )
     return range_name
+
+
+def _validate_value_input_option(value_input_option: Any) -> str:
+    if value_input_option not in _VALID_VALUE_INPUT_OPTIONS:
+        raise SheetsDataError(
+            f"value_input_option={value_input_option!r} inválido. "
+            f"Valores permitidos: {sorted(_VALID_VALUE_INPUT_OPTIONS)}."
+        )
+    return value_input_option
 
 
 class SheetsClient:
@@ -216,6 +234,12 @@ class SheetsClient:
                 .get(spreadsheetId=spreadsheet_id, range=range_name)
                 .execute(num_retries=1)
             )
+        except (RefreshError, GoogleAuthError) as exc:
+            raise SheetsAuthError(
+                f"No se pudo autenticar: el token OAuth/credenciales pueden "
+                f"estar revocados, vencidos o ser inválidos. Vuelve a "
+                f"autorizar el conector. Detalle: {exc}"
+            ) from exc
         except HttpError as exc:
             raise _wrap_http_error(exc) from exc
         values = result.get("values", [])
@@ -256,6 +280,7 @@ class SheetsClient:
         """
         spreadsheet_id = _validate_spreadsheet_id(spreadsheet_id)
         range_name = _validate_range(range_name)
+        value_input_option = _validate_value_input_option(value_input_option)
         service = self._get_service()
         try:
             result = (
@@ -269,6 +294,12 @@ class SheetsClient:
                 )
                 .execute(num_retries=1)
             )
+        except (RefreshError, GoogleAuthError) as exc:
+            raise SheetsAuthError(
+                f"No se pudo autenticar: el token OAuth/credenciales pueden "
+                f"estar revocados, vencidos o ser inválidos. Vuelve a "
+                f"autorizar el conector. Detalle: {exc}"
+            ) from exc
         except HttpError as exc:
             raise _wrap_http_error(exc) from exc
         self._logger.info(
@@ -317,6 +348,7 @@ class SheetsClient:
         """
         spreadsheet_id = _validate_spreadsheet_id(spreadsheet_id)
         range_name = _validate_range(range_name)
+        value_input_option = _validate_value_input_option(value_input_option)
         service = self._get_service()
         try:
             result = (
@@ -331,6 +363,12 @@ class SheetsClient:
                 )
                 .execute(num_retries=1)
             )
+        except (RefreshError, GoogleAuthError) as exc:
+            raise SheetsAuthError(
+                f"No se pudo autenticar: el token OAuth/credenciales pueden "
+                f"estar revocados, vencidos o ser inválidos. Vuelve a "
+                f"autorizar el conector. Detalle: {exc}"
+            ) from exc
         except HttpError as exc:
             raise _wrap_http_error(exc) from exc
         updates = result.get("updates", {})
